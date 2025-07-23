@@ -1,47 +1,82 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Form, Input, Button, Typography, Alert, Card } from 'antd';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-function Register() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+const { Title } = Typography;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // TODO: Add register logic
-    if (password !== confirmPassword) {
-      alert('Passwords do not match!');
+function Register() {
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const onFinish = async (values) => {
+    setError('');
+    setSuccess('');
+    if (values.password !== values.confirmPassword) {
+      setError('Passwords do not match!');
       return;
     }
-    alert('Registration submitted!');
+    setLoading(true);
+    try {
+      const res = await import('../utils/api').then(m => m.apiFetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: values.username, email: values.email, password: values.password })
+      }));
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess('Registration successful! You can now log in.');
+        setTimeout(() => navigate('/login'), 1500);
+      } else {
+        setError(data.error || 'Registration failed');
+      }
+    } catch (err) {
+      setError('Network error');
+    }
+    setLoading(false);
   };
 
   return (
     <>
       <Header />
-      <div className="max-w-md mx-auto mt-16 bg-white rounded-lg shadow p-8">
-        <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="username" className="block text-gray-700 mb-2">Username</label>
-            <input type="text" className="w-full border border-gray-300 rounded px-3 py-2" id="username" value={username} onChange={e => setUsername(e.target.value)} required />
+      <div style={{
+        minHeight: 'calc(100vh - 44px - 48px)', // header + footer height
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '32px 0 32px 0',
+        background: '#f7f9fb',
+        marginTop: '32px', // Add margin to separate from header
+      }}>
+        <Card bordered style={{ borderRadius: 8, boxShadow: '0 2px 8px #f0f1f2', width: 400, maxWidth: '90vw' }}>
+          <Title level={3} style={{ textAlign: 'center', marginBottom: 24, color: '#1677ff' }}>Register for Jira Clone</Title>
+          <Form layout="vertical" onFinish={onFinish} autoComplete="off" style={{ marginTop: 8 }}>
+            <Form.Item label="Full Name" name="username" rules={[{ required: true, message: 'Please enter your full name' }]}> 
+              <Input autoFocus placeholder="Your full name" />
+            </Form.Item>
+            <Form.Item label="Email address" name="email" rules={[{ required: true, message: 'Please enter your email' }]}>
+              <Input type="email" />
+            </Form.Item>
+            <Form.Item label="Password" name="password" rules={[{ required: true, message: 'Please enter your password' }]}>
+              <Input.Password />
+            </Form.Item>
+            <Form.Item label="Confirm Password" name="confirmPassword" rules={[{ required: true, message: 'Please confirm your password' }]}>
+              <Input.Password />
+            </Form.Item>
+            {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 12 }} />}
+            {success && <Alert message={success} type="success" showIcon style={{ marginBottom: 12 }} />}
+            <Form.Item>
+              <Button type="primary" htmlType="submit" block loading={loading}>Register</Button>
+            </Form.Item>
+          </Form>
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            Already have an account? <Link to="/login">Login</Link>
           </div>
-          <div className="mb-4">
-            <label htmlFor="email" className="block text-gray-700 mb-2">Email address</label>
-            <input type="email" className="w-full border border-gray-300 rounded px-3 py-2" id="email" value={email} onChange={e => setEmail(e.target.value)} required />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="password" className="block text-gray-700 mb-2">Password</label>
-            <input type="password" className="w-full border border-gray-300 rounded px-3 py-2" id="password" value={password} onChange={e => setPassword(e.target.value)} required />
-          </div>
-          <div className="mb-6">
-            <label htmlFor="confirmPassword" className="block text-gray-700 mb-2">Confirm Password</label>
-            <input type="password" className="w-full border border-gray-300 rounded px-3 py-2" id="confirmPassword" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
-          </div>
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-semibold">Register</button>
-        </form>
+        </Card>
       </div>
       <Footer />
     </>

@@ -1,48 +1,267 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useState, useContext } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, Button, Divider, Typography, Input, List, Avatar, Space } from 'antd';
+import {
+  DashboardOutlined,
+  UserOutlined,
+  LogoutOutlined,
+  TeamOutlined,
+  DownOutlined,
+  UpOutlined,
+  PlusOutlined,
+  FolderOpenOutlined,
+  SearchOutlined,
+  GoldOutlined,
+  EyeOutlined
+} from '@ant-design/icons';
+import CreateProjectModal from './CreateProjectModal';
+import { ProjectContext } from '../context/ProjectContext'; // Import context
+import { useAuth } from '../context/AuthContext';
 
-const navSections = [
-  {
-    title: 'Main',
-    items: [
-      { name: 'Dashboard', path: '/dashboard' },
-      { name: 'Board', path: '/board' },
-    ],
-  },
-  {
-    title: 'Account',
-    items: [
-      { name: 'Profile', path: '/profile' },
-      { name: 'Logout', path: '/login' },
-    ],
-  },
-];
+const { Text } = Typography;
 
 function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(true);
+  const [search, setSearch] = useState('');
+  
+  // --- FIX: Get the current user from the context ---
+  const { currentUser } = useContext(ProjectContext);
+  const { isAdmin, logout } = useAuth();
+
+  useEffect(() => {
+    // Only fetch projects if a user is logged in
+    if (currentUser) {
+        fetchProjects();
+    }
+  }, [currentUser]);
+
+  const fetchProjects = async () => {
+    let url = isAdmin ? '/projects/all' : '/projects';
+    const res = await import('../utils/api').then(m => m.apiFetch(url));
+    const data = await res.json();
+    if (res.ok) setProjects(data.projects);
+  };
+
+  // Filter projects for sidebar
+  let visibleProjects = projects;
+  // Remove frontend filtering for non-admins; backend already returns only the user's projects
+  // if (!isAdmin && currentUser) {
+  //   visibleProjects = projects.filter(p => {
+  //     if (p.owner_id === currentUser.id) return true;
+  //     if (Array.isArray(p.members) && p.members.some(m => m.id === currentUser.id)) return true;
+  //     if (Array.isArray(p.member_ids) && p.member_ids.includes(currentUser.id)) return true;
+  //     return false;
+  //   });
+  // }
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
-    <aside className="h-screen w-56 bg-gray-800 text-white flex flex-col py-8 px-4 fixed">
-      <div className="mb-8 text-2xl font-bold text-center">Jira Clone</div>
-      <nav className="flex-1">
-        {navSections.map(section => (
-          <div key={section.title} className="mb-6">
-            <div className="text-xs uppercase text-gray-400 mb-2 px-2 tracking-wider">{section.title}</div>
-            <ul className="space-y-1">
-              {section.items.map(item => (
-                <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    className={`block px-4 py-2 rounded hover:bg-gray-700 transition ${location.pathname === item.path ? 'bg-gray-700' : ''}`}
-                  >
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </nav>
-    </aside>
+    <div style={{
+      background: '#ffffff',
+      minHeight: '100vh',
+      width: 240,
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'fixed',
+      top: 44, // below header
+      left: 0,
+      bottom: 0,
+      zIndex: 100,
+      borderRight: '1px solid rgba(0, 0, 0, 0.07)',
+      boxShadow: '2px 0 8px rgba(0,0,0,0.04)',
+      overflow: 'hidden',
+      transition: 'box-shadow 0.2s',
+    }}>
+      {/* Projects Section */}
+      <div style={{ padding: '16px 16px 0', flex: 1, overflowY: 'auto', minHeight: 0 }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          marginBottom: 12
+        }}>
+          <Text style={{ 
+            color: '#6b7280', 
+            fontWeight: 600, 
+            fontSize: 12, 
+            textTransform: 'uppercase',
+            letterSpacing: 0.5
+          }}>
+            Projects
+          </Text>
+          <Button
+            type="text"
+            icon={projectsOpen ? <UpOutlined style={{ fontSize: 12 }} /> : <DownOutlined style={{ fontSize: 12 }} />}
+            size="small"
+            onClick={() => setProjectsOpen(!projectsOpen)}
+          />
+        </div>
+
+        {projectsOpen && (
+          <>
+            {/* Removed project search input */}
+            {/* Show New Project button only for admin */}
+            {isAdmin && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                size="small"
+                style={{ borderRadius: 6, width: '100%', backgroundColor: '#4f46e5', fontWeight: 500 }}
+                onClick={() => setShowCreateModal(true)}
+              >
+                New Project
+              </Button>
+            )}
+            <List
+              itemLayout="horizontal"
+              dataSource={visibleProjects}
+              locale={{ emptyText: <span style={{ color: '#9ca3af', fontSize: 13 }}>No projects found</span> }}
+              style={{ marginBottom: 8 }}
+              renderItem={project => (
+                <List.Item
+                  key={project.id}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    background: location.pathname === `/projects/${project.id}` ? '#eef2ff' : 'transparent',
+                    cursor: 'pointer',
+                    marginBottom: 4,
+                  }}
+                  onClick={() => navigate(`/projects/${project.id}`)}
+                  actions={project.role === 'Project Visitor' ? [<EyeOutlined style={{ color: '#888' }} title="Visitor" key="visitor" />] : []}
+                >
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar 
+                        size="small" 
+                        style={{ 
+                          backgroundColor: location.pathname === `/projects/${project.id}` ? '#4f46e5' : '#e5e7eb',
+                          color: location.pathname === `/projects/${project.id}` ? 'white' : '#4b5563',
+                          fontWeight: 600
+                        }}
+                      >
+                        {project.name[0]?.toUpperCase()}
+                      </Avatar>
+                    }
+                    title={
+                      <Text 
+                        style={{ 
+                          fontSize: 13,
+                          color: location.pathname === `/projects/${project.id}` ? '#4f46e5' : '#111827',
+                          fontWeight: location.pathname === `/projects/${project.id}` ? 600 : 500
+                        }}
+                        ellipsis
+                      >
+                        {project.name}
+                      </Text>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+            {/* Removed Manage Projects button */}
+          </>
+        )}
+      </div>
+
+      <Menu
+        theme="light"
+        mode="inline"
+        selectedKeys={[location.pathname.startsWith('/projects/') ? '/projects' : location.pathname]}
+        style={{ 
+          borderRight: 0,
+          background: 'transparent',
+          padding: '0 8px'
+        }}
+        items={[
+          // Only show Dashboard and Profile for non-admins
+          !isAdmin && {
+            key: '/dashboard',
+            icon: <DashboardOutlined style={{ fontSize: 14 }} />, 
+            label: <Link to="/dashboard" style={{ fontSize: 13 }}>Dashboard</Link>,
+            style: { borderRadius: 6, height: 36, marginBottom: 4 }
+          },
+          {
+            key: '/teams',
+            icon: <TeamOutlined style={{ fontSize: 14 }} />, 
+            label: <Link to="/teams" style={{ fontSize: 13 }}>Teams</Link>,
+            style: { borderRadius: 6, height: 36, marginBottom: 4 }
+          },
+          !isAdmin && {
+            key: '/profile',
+            icon: <UserOutlined style={{ fontSize: 14 }} />, 
+            label: <Link to="/profile" style={{ fontSize: 13 }}>Profile</Link>,
+            style: { borderRadius: 6, height: 36, marginBottom: 4 }
+          },
+          isAdmin && ({
+            key: '/admin',
+            icon: <GoldOutlined style={{ fontSize: 14 }} />, 
+            label: <Link to="/admin" style={{ fontSize: 13 }}>Admin Panel</Link>,
+            style: { borderRadius: 6, height: 36, marginBottom: 4 }
+          })
+        ].filter(Boolean)}
+      />
+
+      <div style={{ 
+        padding: '16px',
+        borderTop: '1px solid rgba(0, 0, 0, 0.05)',
+        marginTop: 'auto'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          marginBottom: 16
+        }}>
+          <Avatar 
+            size="small" 
+            style={{ 
+              backgroundColor: '#4f46e5',
+              color: 'white',
+              marginRight: 8
+            }}
+            icon={<UserOutlined />}
+          >
+            {currentUser?.username?.[0]?.toUpperCase()}
+          </Avatar>
+          <Text style={{ fontSize: 13, fontWeight: 500 }} ellipsis>
+            {currentUser?.username || 'User'}
+          </Text>
+        </div>
+        <Button
+          type="text"
+          size="small"
+          icon={<LogoutOutlined style={{ fontSize: 14 }} />}
+          danger
+          block
+          onClick={handleLogout}
+          style={{ 
+            textAlign: 'left',
+            fontSize: 13,
+            height: 32,
+            color: '#ef4444'
+          }}
+        >
+          Log out
+        </Button>
+      </div>
+
+      <CreateProjectModal
+        visible={showCreateModal}
+        onProjectCreated={() => {
+          setShowCreateModal(false);
+          fetchProjects();
+        }}
+        onCancel={() => setShowCreateModal(false)}
+      />
+    </div>
   );
 }
 

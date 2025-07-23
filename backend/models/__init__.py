@@ -4,7 +4,9 @@ from .project_member import ProjectMember
 from .board_column import BoardColumn
 from .item import Item
 from .comment import Comment
-from .notification import Notification
 from .team import Team
 from .team_member import TeamMember
-from .project_team import ProjectTeam
+from .activity_log import ActivityLog
+from .notification import Notification
+from .role import Role
+from .permission import Permission

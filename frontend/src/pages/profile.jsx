@@ -1,47 +1,202 @@
-import React from 'react';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import React, { useEffect, useState, useContext } from 'react';
+import { Card, Tabs, List, Tag, Spin, Descriptions, message, Button } from 'antd';
+import { ProjectOutlined, TeamOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+import { getTypeIcon, getStatusColor, getPriorityColor } from '../utils/itemUi.jsx';
+import { ProjectContext } from '../context/ProjectContext.jsx';
+import { apiFetch } from '../utils/api';
 
 function Profile() {
-  // Dummy user data for now
-  const user = {
-    username: 'johndoe',
-    email: 'johndoe@example.com',
-    joined: '2025-07-01',
-    projects: 3,
-    teams: 2
+  // --- FIX: Use the central context to get the current user ---
+  const { currentUser } = useContext(ProjectContext);
+
+  const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [invitations, setInvitations] = useState([]);
+  const [invLoading, setInvLoading] = useState(false);
+  const [invActionLoading, setInvActionLoading] = useState({});
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      setLoading(true);
+      try {
+        // Fetch all data concurrently for better performance
+        const [tasksRes, projectsRes, teamsRes] = await Promise.all([
+          apiFetch('/items/my-tasks'),
+          apiFetch('/projects'),
+          apiFetch('/teams/my-teams')
+        ]);
+
+        const tasksData = await tasksRes.json();
+        const projectsData = await projectsRes.json();
+        const teamsData = await teamsRes.json();
+
+        setTasks(tasksData.tasks || []);
+        setProjects(projectsData.projects || []);
+        setTeams(teamsData.teams || []);
+
+      } catch (err) {
+        message.error('Failed to load profile data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (currentUser) {
+      fetchProfileData();
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser) fetchInvitations();
+  }, [currentUser]);
+
+  const fetchInvitations = async () => {
+    setInvLoading(true);
+    try {
+      const res = await apiFetch('/my-invitations');
+      if (res.ok) {
+        const data = await res.json();
+        setInvitations(data.invitations || []);
+      }
+    } catch {
+      setInvitations([]);
+    }
+    setInvLoading(false);
   };
 
+  const handleInvitationAction = async (inviteId, projectId, action) => {
+    setInvActionLoading(l => ({ ...l, [inviteId]: true }));
+    try {
+      const res = await apiFetch(`/projects/${projectId}/invitation/${inviteId}/${action}`, { method: 'POST' });
+      if (res.ok) {
+        setInvitations(inv => inv.filter(i => i.id !== inviteId));
+        message.success(`Invitation ${action}ed successfully.`);
+      } else {
+        message.error('Failed to update invitation');
+      }
+    } catch {
+      message.error('Network error');
+    }
+    setInvActionLoading(l => ({ ...l, [inviteId]: false }));
+  };
+
+  // --- FIX: Use the 'items' prop for Ant Design Tabs ---
+  const tabItems = [
+    {
+      key: 'tasks',
+      label: <span><CheckCircleOutlined /> My Tasks</span>,
+      children: (
+        <List
+          itemLayout="horizontal"
+          dataSource={tasks}
+          renderItem={task => (
+            <List.Item>
+              <List.Item.Meta
+                avatar={getTypeIcon(task.type)}
+                title={<span style={{ fontWeight: 500 }}>{task.title}</span>}
+                description={
+                  <>
+                    <Tag color={getStatusColor(task.status)}>{task.status}</Tag>
+                    <Tag color={getPriorityColor(task.priority)}>{task.priority || 'No priority'}</Tag>
+                  </>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      ),
+    },
+    {
+      key: 'projects',
+      label: <span><ProjectOutlined /> My Projects</span>,
+      children: (
+        <List
+            dataSource={projects}
+            renderItem={project => (
+                <List.Item>
+                    <List.Item.Meta
+                        avatar={<ProjectOutlined />}
+                        title={project.name}
+                    />
+                </List.Item>
+            )}
+        />
+      ),
+    },
+    {
+        key: 'teams',
+        label: <span><TeamOutlined /> My Teams</span>,
+        children: (
+          <List
+              dataSource={teams}
+              renderItem={team => (
+                  <List.Item>
+                      <List.Item.Meta
+                          avatar={<TeamOutlined />}
+                          title={team.name}
+                      />
+                  </List.Item>
+              )}
+          />
+        ),
+      },
+  ];
+
+  if (loading || !currentUser) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}><Spin size="large" /></div>;
+  }
+
   return (
-    <>
-      <Header isAuthenticated={true} />
-      <div className="max-w-xl mx-auto mt-16 bg-white rounded-lg shadow p-8 border border-gray-200">
-        <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Profile</h2>
-        <div className="mb-4 flex flex-col items-center">
-          <div className="w-20 h-20 rounded-full bg-blue-200 flex items-center justify-center text-3xl font-bold text-blue-700 mb-4">
-            {user.username[0].toUpperCase()}
-          </div>
-          <div className="text-xl font-semibold">{user.username}</div>
-          <div className="text-gray-500">{user.email}</div>
-        </div>
-        <div className="flex justify-between mt-8 mb-4">
-          <div className="text-center">
-            <div className="text-lg font-bold">{user.projects}</div>
-            <div className="text-gray-500 text-sm">Projects</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-bold">{user.teams}</div>
-            <div className="text-gray-500 text-sm">Teams</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-bold">{user.joined}</div>
-            <div className="text-gray-500 text-sm">Joined</div>
-          </div>
-        </div>
-        <button className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-400 font-semibold transition mt-6">Edit Profile</button>
-      </div>
-      <Footer />
-    </>
+    <div style={{ maxWidth: 600, margin: '0 auto', padding: 32 }}>
+      <Card style={{ marginBottom: 24 }}>
+        <Descriptions title="Profile Info" bordered column={1}>
+          <Descriptions.Item label="Username">{currentUser.username}</Descriptions.Item>
+          <Descriptions.Item label="Email">{currentUser.email}</Descriptions.Item>
+          {/* --- FIX: Removed the outdated global 'Role' display --- */}
+        </Descriptions>
+      </Card>
+      {/* --- Pending Invitations --- */}
+      {invitations.length > 0 && (
+        <Card style={{ marginBottom: 24 }}>
+          <h3>Pending Project Invitations</h3>
+          {invLoading ? <Spin /> : (
+            <List
+              bordered
+              dataSource={invitations}
+              renderItem={inv => (
+                <List.Item
+                  actions={[
+                    <Button
+                      size="small"
+                      type="primary"
+                      loading={invActionLoading[inv.id]}
+                      onClick={() => handleInvitationAction(inv.id, inv.project_id, 'accept')}
+                    >Accept</Button>,
+                    <Button
+                      size="small"
+                      danger
+                      loading={invActionLoading[inv.id]}
+                      onClick={() => handleInvitationAction(inv.id, inv.project_id, 'reject')}
+                    >Reject</Button>
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={<span>Project ID: {inv.project_id}</span>}
+                    description={`Invited at ${new Date(inv.created_at).toLocaleString()}`}
+                  />
+                </List.Item>
+              )}
+            />
+          )}
+        </Card>
+      )}
+      <Card>
+        <Tabs defaultActiveKey="tasks" items={tabItems} />
+      </Card>
+    </div>
   );
 }
 
