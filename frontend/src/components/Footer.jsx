@@ -12,7 +12,7 @@ function Footer() {
       borderTop: 'none',
       position: 'static'
     }}>
-      jira clone @ 2025
+      Cumin Dashboard @ 2025
     </footer>
   );
 }

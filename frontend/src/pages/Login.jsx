@@ -57,7 +57,7 @@ function LoginPage() { // Accept setIsAuthenticated as prop
         background: '#f7f9fb',
       }}>
         <Card variant="outlined" style={{ borderRadius: 8, boxShadow: '0 2px 8px #f0f1f2', width: 400, maxWidth: '90vw' }}>
-          <Title level={3} style={{ textAlign: 'center', marginBottom: 24, color: '#1677ff' }}>Login to Jira Clone</Title>
+          <Title level={3} style={{ textAlign: 'center', marginBottom: 24, color: '#1677ff' }}>Login to Cumin Dashboard</Title>
           <Form layout="vertical" onFinish={onFinish} autoComplete="off">
             <Form.Item label="Email address" name="email" rules={[{ required: true, message: 'Please enter your email' }]}> 
               <Input type="email" autoFocus />

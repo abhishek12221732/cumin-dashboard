@@ -53,7 +53,7 @@ function Register() {
         marginTop: '32px', // Add margin to separate from header
       }}>
         <Card bordered style={{ borderRadius: 8, boxShadow: '0 2px 8px #f0f1f2', width: 400, maxWidth: '90vw' }}>
-          <Title level={3} style={{ textAlign: 'center', marginBottom: 24, color: '#1677ff' }}>Register for Jira Clone</Title>
+          <Title level={3} style={{ textAlign: 'center', marginBottom: 24, color: '#1677ff' }}>Register for Cumin Dashboard</Title>
           <Form layout="vertical" onFinish={onFinish} autoComplete="off" style={{ marginTop: 8 }}>
             <Form.Item label="Full Name" name="username" rules={[{ required: true, message: 'Please enter your full name' }]}> 
               <Input autoFocus placeholder="Your full name" />

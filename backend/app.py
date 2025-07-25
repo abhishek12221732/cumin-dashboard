@@ -51,7 +51,7 @@ print('JWTManager initialized:', jwt)
 
 @app.route('/')
 def index():
-    return 'Jira Clone Backend is running!'
+    return 'Cumin Dashboard Backend is running!'
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

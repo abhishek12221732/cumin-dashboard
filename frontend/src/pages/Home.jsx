@@ -61,7 +61,7 @@ function Home() {
             marginBottom: 24,
             lineHeight: 1.2
           }}>
-            Streamline Your Projects with <span style={{ color: '#1677ff' }}>Jira Clone</span>
+            Streamline Your Projects with <span style={{ color: '#1677ff' }}>Cumin Dashboard</span>
           </Title>
           
           <Paragraph style={{ 
@@ -117,7 +117,7 @@ function Home() {
             color: '#1a1a1a',
             fontWeight: 600
           }}>
-            Why Teams Love Jira Clone
+            Why Teams Love Cumin Dashboard
           </Title>
           
           <Row gutter={[32, 48]} justify="center">
@@ -180,7 +180,7 @@ function Home() {
             color: 'rgba(255, 255, 255, 0.9)',
             marginBottom: 40
           }}>
-            Join thousands of teams who manage their projects efficiently with Jira Clone.
+            Join teams who manage their projects efficiently with Cumin Dashboard.
           </Paragraph>
           <Button 
             size="large" 

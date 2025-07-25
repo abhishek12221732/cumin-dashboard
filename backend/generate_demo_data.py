@@ -1,5 +1,5 @@
 """
-Demo Data Generator for Jira Clone Backend
+Demo Data Generator for Cumin Dashboard Backend
 
 Demo Users (login with these credentials):
 - admin@example.com / adminpass (Firm Admin, not a member of any team/project)
