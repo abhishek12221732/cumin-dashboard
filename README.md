@@ -134,8 +134,8 @@ Ensure PostgreSQL is running and that your `.env` files match your local configu
 
 ## 🧪 Live Demo
 
-* 🔗 **Live App**: [https://cumin-dashboard.onrender.com](https://flask-frontend-ge56.onrender.com/)
-* 💻 **GitHub**: [https://github.com/yourusername/cumin-dashboard](https://github.com/abhishek12221732/cumin-dashboard)
+* 🔗 **Live App**: [https://flask-frontend-ge56.onrender.com/](https://flask-frontend-ge56.onrender.com/)
+* 💻 **GitHub**: [https://github.com/abhishek12221732/cumin-dashboard](https://github.com/abhishek12221732/cumin-dashboard)
 
 > ⚠️ *Note: Initial loading may be slow due to Render’s free-tier hosting (cold starts).*
 
