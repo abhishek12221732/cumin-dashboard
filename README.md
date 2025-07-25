@@ -52,9 +52,9 @@ cumin-dashboard/
 
 1. Navigate to the backend directory:
 
-
+```
    cd backend
-
+```
 
 2. Create and activate a virtual environment:
 
