@@ -58,18 +58,18 @@ cumin-dashboard/
 
 2. Create and activate a virtual environment:
 
-
+```
    python -m venv venv
    source venv/bin/activate   # On Windows: venv\Scripts\activate
-
+```
 
 3. Install dependencies:
-
+```
    pip install -r requirements.txt
-
+```
 
 4. Create a `.env` file in the `backend/` directory with the following:
-
+```
    CORS_ORIGINS=*
    
    FLASK_ENV=development
@@ -83,21 +83,21 @@ cumin-dashboard/
    JWT_HEADER_NAME=Authorization
    
    JWT_HEADER_TYPE=Bearer
-
+```
 
 6. Set up the database:
 
-
+```
    flask db init
    flask db migrate
    flask db upgrade
-
+```
 
 7. Start the development server:
 
-
+```
    flask run
-
+```
 
 ---
 
@@ -105,22 +105,22 @@ cumin-dashboard/
 
 1. Open a new terminal and navigate to the frontend directory:
 
-
+```
    cd frontend
-
+```
 
 2. Install dependencies:
-
+```
    npm install
-
+```
 3. Create a `.env` file in the `frontend/` directory:
-
+```
    VITE_API_URL=http://localhost:5000/api
-
+```
 4. Start the Vite dev server:
-
+```
    npm run dev
-
+```
 ---
 
 ## 🌐 Access
