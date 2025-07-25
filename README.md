@@ -71,11 +71,17 @@ cumin-dashboard/
 4. Create a `.env` file in the `backend/` directory with the following:
 
    CORS_ORIGINS=*
+   
    FLASK_ENV=development
+   
    SECRET_KEY=your-secret-key
+   
    DATABASE_URL=postgresql://username:password@localhost:5432/your_db_name
+   
    JWT_SECRET_KEY=your-jwt-secret-key
+   
    JWT_HEADER_NAME=Authorization
+   
    JWT_HEADER_TYPE=Bearer
 
 
