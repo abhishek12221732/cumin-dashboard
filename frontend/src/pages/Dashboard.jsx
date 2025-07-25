@@ -325,7 +325,7 @@ function Dashboard() {
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '32px auto', padding: '0 16px' }}>
+    <div style={{ maxWidth: 1200, margin: '32px auto', padding: '0 16px', marginBottom:' 110px' }}>
       {/* --- Pending Invitations --- */}
       {invitations.length > 0 && (
         <Card style={{ marginBottom: 24 }}>
