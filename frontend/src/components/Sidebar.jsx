@@ -81,7 +81,7 @@ function Sidebar() {
       transition: 'box-shadow 0.2s',
     }}>
       {/* Projects Section */}
-      <div style={{ padding: '16px 16px 0', flex: 1, overflowY: 'auto', minHeight: 0, marginTop:5 }}>
+      <div style={{ padding: '16px 16px 0', flex: 1, overflowY: 'auto', minHeight: 0 }}>
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -134,6 +134,7 @@ function Sidebar() {
                     background: location.pathname === `/projects/${project.id}` ? '#eef2ff' : 'transparent',
                     cursor: 'pointer',
                     marginBottom: 4,
+                    marginTop:4,
                   }}
                   onClick={() => navigate(`/projects/${project.id}`)}
                   actions={project.role === 'Project Visitor' ? [<EyeOutlined style={{ color: '#888' }} title="Visitor" key="visitor" />] : []}
