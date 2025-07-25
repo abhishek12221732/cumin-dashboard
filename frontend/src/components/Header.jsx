@@ -57,7 +57,7 @@ function Header() {
   ];
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 44, padding: '0 32px', background: '#fff', boxShadow: '0 1px 4px #f0f1f2', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 55, padding: '0 32px', background: '#fff', boxShadow: '0 1px 4px #f0f1f2', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200}}>
       <div>
         <Link to="/" style={{ textDecoration: 'none' }}>
           <Title level={3} style={{ margin: 0, color: '#1677ff', fontWeight: 700, letterSpacing: 1 }}>Cumin Dashboard</Title>
