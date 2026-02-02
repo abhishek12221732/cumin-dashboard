@@ -65,6 +65,8 @@ venv.bak/
 
 # Database
 *.sqlite3
+*.db
+instance/
 
 # OS files
 .DS_Store

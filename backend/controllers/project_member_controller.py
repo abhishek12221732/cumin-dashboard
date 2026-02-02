@@ -15,7 +15,7 @@ from controllers.rbac import is_admin
 def add_member(project_id):
     data = request.get_json()
     email = data.get('email')
-    role_name = data.get('role', 'Project Contributor')  # Default to a valid project role
+    role_name = data.get('role', 'Project Contributor')
     if not email:
         return jsonify({'error': 'User email required'}), 400
     user = User.query.filter_by(email=email).first()

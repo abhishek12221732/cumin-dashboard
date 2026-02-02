@@ -10,3 +10,4 @@ from .activity_log import ActivityLog
 from .notification import Notification
 from .role import Role
 from .permission import Permission
+from .team_manager_request import TeamManagerRequest
