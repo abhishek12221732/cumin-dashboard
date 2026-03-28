@@ -1,180 +1,216 @@
-# Cumin Dashboard Backend Documentation
+﻿# Cumin Dashboard Backend Documentation
 
 ## 1. Architecture Overview
-This backend acts as the RESTful API for the Cumin Dashboard, facilitating project management, team collaboration, and issue tracking.
+This backend provides the RESTful API for the Cumin Dashboard, supporting project and team management, issue tracking, notifications, and role-based access control.
 
 **Tech Stack:**
 - **Language:** Python 3
 - **Framework:** Flask
-- **Database:** SQLite (dev) / PostgreSQL (prod ready via SQLAlchemy)
-- **ORM:** SQLAlchemy
-- **Authentication:** JWT (JSON Web Tokens) via `flask-jwt-extended`
-- **Migrations:** Flask-Migrate (Alembic wrapper)
+- **Database ORM:** SQLAlchemy
+- **Authentication:** JWT via `flask-jwt-extended`
+- **Migrations:** Flask-Migrate (Alembic)
+- **CORS:** `flask-cors`
 
-## 2. Business Logic & Controllers
+## 2. Backend Structure
 
-The core business logic is encapsulated in the `controllers/` directory, keeping `routes/` focused on request handling.
+### Entry Point
+- `app.py`
+  - Creates the Flask application
+  - Loads environment variables with `dotenv`
+  - Configures database URI, JWT, and CORS
+  - Registers route blueprints
+  - Initializes `db` and migrations
+  - Creates database tables automatically in app context
 
-### Authentication Controller (`auth_controller.py`)
-- **Registration**: Accepts `username`, `email`, `password`. Hashes password using `werkzeug.security`.
-- **Login**: Verifies credentials and issues a JWT access token. Identity is the `user.id`.
+### Route Layer
+- `routes/` contains HTTP endpoint definitions and handles request authentication.
+- Each route file registers a `Blueprint` and delegates business logic to controller functions.
+- Common route files:
+  - `auth.py`
+  - `projects.py`
+  - `project_member.py`
+  - `item.py`
+  - `board_column.py`
+  - `teams.py`
+  - `user.py`
+  - `notification.py`
+  - `reports.py`
+  - `admin.py`
 
-### Project Controller (`project_controller.py`)
-- **Creation**:
-    - Creates a new `Project` linked to an `Owner Team`.
-    - Automatically creates default Kanban columns: "To Do", "In Progress", "In Review", "Done".
-    - **Role Management**: Automatically assigns the Team Manager as `Project Owner` and all other team members as `Project Contributor`.
-- **Dashboard Stats**: Aggregates counts of Projects, Tasks (assigned/reported), and Teams for the user.
-- **Progress**: Calculates completion percentage based on item status (`done` vs total).
+### Controller Layer
+- `controllers/` contains application logic and database operations.
+- It isolates validation, permission checks, creation/update flows, notifications, and activity logging from the HTTP layer.
+- Key controllers:
+  - `auth_controller.py`
+  - `project_controller.py`
+  - `item_controller.py`
+  - `project_member_controller.py`
+  - `team_controller.py`
+  - `board_column_controller.py`
+  - `report_controller.py`
+  - `notification_controller.py`
+  - `admin_controller.py`
+  - `rbac.py`
 
-### Item Controller (`item_controller.py`)
-Handles logic for Tasks (Items), Subtasks, and Comments.
-- **Activity Logging**: Most actions (create, update, delete) trigger an `ActivityLog` entry.
-- **Notifications**:
-    - **Assignment**: Notifies the new assignee when a task/subtask is assigned.
-    - **Comments**: Notifies the Assignee (if not the commenter) and Reporter (if not the commenter) of new comments.
-- **Hierarchical Deletion**: Deleting a task cascades to delete its Subtasks and Activity Logs.
-- **Validation**: Enforces strict constraints on `status` (todo, inprogress/done/inreview), `priority`, and `type`.
-
-### Project Member Controller (`project_member_controller.py`)
-Manages the complex RBAC and membership flows.
-- **Invitations**:
-    - Users can be invited by email. Creates a `ProjectJoinRequest` (type='invite').
-    - Pending invitations can be Accepted (adds user to project) or Rejected.
-- **Join Requests**:
-    - Users can request to join a project. Creates a `ProjectJoinRequest` (type='request').
-    - Project Owners/Managers are notified of new requests.
-- **Role Limits**: Prevents removing or demoting the *last* `Project Owner` to ensure project accessibility.
-
-### Teams Controller (`teams.py` route file contains logic)
-*Note: Currently, some team logic resides directly in the route handler `routes/teams.py` rather than a dedicated controller file, which is a noted architectural inconsistency.*
-- **Manager Requests**: Users can request to become the Team Manager.
-- **Role Assignment**: Team Admins/Managers can assign `Team Member` or `Team Manager` roles. Promoting a new manager automatically demotes the previous one.
-
-### Board Column Controller (`board_column_controller.py`)
-- **Management**: Allows creating, updating (renaming/reordering), and deleting columns for the Kanban board.
-- **Ordering**: Columns have an explicit `order` integer index.
-
-### Report Controller (`report_controller.py`)
-- **Project Report**: Generates a comprehensive status report including:
-    - Member list with roles.
-    - Task status distribution (counts of done, todo, etc.).
-    - List of detailed tasks.
-
-### Notification Controller (`notification_controller.py`)
-- **Storage**: Persists notifications to the database.
-- **Retrieval**: Fetches unread notifications for a user.
-- **Status**: Supports marking individual notifications as read.
+### Data Layer
+- `models/` defines SQLAlchemy models for database tables.
+- `models/db.py` creates the shared `SQLAlchemy` instance.
 
 ## 3. Database Schema
-The database is normalized and relational. Below are the key entities and relationships.
 
-### User & Authorization
-- **User**
-    - `id`: Integer, PK
-    - `username`: String(80), Unique
-    - `email`: String(120), Unique
-    - `password_hash`: String(512)
-- **Role**
-    - `id`: Integer, PK
-    - `name`: String(50) (e.g., "Firm Admin", "Team Manager")
-    - `scope`: String(20) (Values: `firm`, `team`, `project`)
-    - `permissions`: Many-to-Many with `Permission`
-- **Permission**
-    - `action`: String(50) (e.g., `create_project`)
+### User and Auth
+- `User`
+  - `id`, `username`, `email`, `password_hash`
+  - timestamps: `created_at`, `updated_at`
 
-### Team Structure
-- **Team**
-    - `id`: Integer, PK
-    - `manager_id`: FK -> `User.id`
-    - `members`: One-to-Many -> `TeamMember`
-- **TeamDetails**: `TeamMember` links User to Team with a specific Role.
-- **TeamManagerRequest**: Tracks status (`pending`/`accepted`) of leadership transfer requests.
+### Permissions and Roles
+- `Role`
+  - `name` and `scope` (`firm`, `team`, `project`)
+  - many-to-many relationship to `Permission`
+- `Permission`
+  - `action` and optional `description`
 
-### Project Management
-- **Project**
-    - `id`: Integer, PK
-    - `owner_team_id`: FK -> `Team.id` (Projects are owned by teams)
-    - `members`: One-to-Many -> `ProjectMember`
-- **ProjectMember**: Links User to Project with a specific Role.
-- **ProjectJoinRequest**: Handles both *Invitations* (outbound) and *access requests* (inbound).
+### Teams
+- `Team`
+  - `manager_id` references `User`
+- `TeamMember`
+  - composite PK (`team_id`, `user_id`)
+  - stores user role in team
+- `TeamManagerRequest`
+  - requests to become a team manager
 
-### Work Items (Issues/Tasks)
-- **BoardColumn**: Ordered columns logic for Kanban.
-- **Item**:
-    - `type`: task, bug, epic, feature.
-    - `status`: todo, inprogress, inreview, done.
-    - `parent_id`: For Subtasks.
-- **Comment**: Simple text comments on Items.
-- **ActivityLog**: History of changes for audit trails.
+### Projects
+- `Project`
+  - `owner_id` references `User`
+  - `owner_team_id` references `Team`
+  - relationships to board columns, items, and members
+- `ProjectMember`
+  - composite PK (`project_id`, `user_id`)
+  - stores user role in project
+- `ProjectJoinRequest`
+  - handles invitations and join requests
 
-## 4. Authorization System (RBAC)
-Permissions are checked hierarchically via `controllers/rbac.py`.
+### Work Items
+- `BoardColumn`
+  - ordered Kanban columns for a project
+- `Item`
+  - tasks/issues with type, status, priority, and optional parent for subtasks
+- `Comment`
+  - comments on items
+- `ActivityLog`
+  - audit trail of actions on items
 
-1.  **Global Level (Hardcoded Admin)**: `admin@example.com` has bypass authority.
-2.  **Firm Level**: Checks `TeamMember` roles with `scope='firm'`.
-3.  **Team Level**: Checks `TeamMember` roles for the specific team.
-4.  **Project Level**: Checks `ProjectMember` roles.
-    - Support for "Own" vs "Any" permissions (e.g., `edit_own_task` vs `edit_any_task`).
+### Notifications
+- `Notification`
+  - per-user notifications with `is_read` status
 
-## 5. API Reference Summary
+## 4. Authorization (RBAC)
+- `controllers/rbac.py` implements permission checks.
+- Uses team/project roles and permissions to determine authorization.
+- Global admin bypass is applied for a hardcoded admin user.
+- Supports permissions like:
+  - `edit_own_task` vs `edit_any_task`
+  - `delete_own_task` vs `delete_any_task`
+
+## 5. API Reference
 
 ### Authentication (`/auth`)
-- `POST /register`: Sign up
-- `POST /login`: Get JWT
-- `GET /me`: Profile
+- `POST /register`: Register new user
+- `POST /login`: Authenticate and return JWT
+- `GET /me`: Get current user profile
 
 ### Projects (`/projects`)
-- `POST /`: Create project (requires Team ID).
-- `GET /`: List my projects.
-- `GET /{id}`: Details + Settings.
-- `POST /{id}/transfer-ownership`: Change owner.
+- `POST /projects`: Create project (admin-only)
+- `GET /projects`: List authenticated user's projects
+- `GET /projects/<project_id>`: Get project details
+- `GET /projects/<project_id>/progress`: Get completion metrics
+- `GET /dashboard/stats`: Get dashboard summary
+- `PATCH /projects/<project_id>`: Update project
+- `DELETE /projects/<project_id>`: Delete project (admin-only)
+- `POST /projects/<project_id>/transfer-ownership`: Transfer owner
+- `POST /projects/<project_id>/owner_team`: Set owning team (admin-only)
+- `GET /projects/<project_id>/my-role`: Get current user's project role and permissions
+- `GET /all-projects`: Admin-only project listing
 
-### Project Members (`/projects/{id}/members`)
-- `POST /`: Invite user (by email).
-- `POST /index`: Join request.
-- `PATCH /{uid}`: Change role.
+### Project Membership (`/projects/<project_id>/members`)
+- `POST /projects/<project_id>/members`: Add project member
+- `GET /projects/<project_id>/members`: List project members
+- `POST /projects/<project_id>/join-request`: Request project access
+- `GET /projects/<project_id>/join-requests`: List join requests
+- `POST /projects/<project_id>/join-request/<request_id>/accept`: Accept join request
+- `POST /projects/<project_id>/join-request/<request_id>/reject`: Reject join request
+- `GET /my-invitations`: List invitations for current user
+- `POST /projects/<project_id>/invitation/<invite_id>/accept`: Accept invitation
+- `POST /projects/<project_id>/invitation/<invite_id>/reject`: Reject invitation
+- `DELETE /projects/<project_id>/members/<user_id>`: Remove user from project
+- `PATCH /projects/<project_id>/members/<user_id>`: Update member role
 
 ### Teams (`/teams`)
-- `POST /{id}/manager-request`: Claim leadership.
-- `POST /{id}/members`: Add member.
+- `GET /teams`: List teams
+- `POST /teams`: Create team
+- `GET /teams/<team_id>`: Get team details
+- `POST /teams/<team_id>/manager-request`: Request manager role
+- `GET /teams/<team_id>/manager-requests`: List manager requests
+- `POST /teams/<team_id>/manager-requests/<request_id>/accept`: Accept request
+- `POST /teams/<team_id>/manager-requests/<request_id>/reject`: Reject request
+- `POST /teams/<team_id>/projects`: Assign a project to team
+- `DELETE /teams/<team_id>/projects/<project_id>`: Remove project from team
+- `POST /teams/<team_id>/members`: Add team member
+- `DELETE /teams/<team_id>/members/<user_id>`: Remove team member
+- `GET /teams/<team_id>/my-role`: Get current user's team role and permissions
+- `PATCH /teams/<team_id>/members/<user_id>/role`: Change team member role
+- `DELETE /teams/<team_id>`: Delete team
+- `GET /teams/my-teams`: List teams current user belongs to
+- `GET /teams/all`: List all teams
+- `GET /roles/team`: Get team-role definitions
 
-### Work Items (`/items`, `/projects/{pid}/items`)
-- `POST /projects/{pid}/items`: Create Task.
-- `POST /{id}/subtasks`: Create Subtask.
-- `PATCH /{id}`: Update status/assignee.
-- `POST /{id}/comments`: Add comment.
+### Items (`/items`)
+- `POST /projects/<project_id>/items`: Create item/task
+- `GET /projects/<project_id>/items`: List project items
+- `GET /items/<item_id>`: Get item details
+- `PATCH /items/<item_id>`: Update item
+- `DELETE /items/<item_id>`: Delete item
+- `GET /items/<item_id>/subtasks`: List subtasks
+- `POST /items/<item_id>/subtasks`: Create subtask
+- `PATCH /items/subtasks/<subtask_id>`: Update subtask
+- `DELETE /items/subtasks/<subtask_id>`: Delete subtask
+- `GET /items/<item_id>/activity`: Get item activity logs
+- `GET /items/activity`: Get recent activity across items
+- `GET /items/my-tasks`: Get tasks assigned to current user
+- `POST /items/<item_id>/comments`: Add comment
+- `PATCH /items/comments/<comment_id>`: Edit comment
 
-## 6. Configuration & Environment (`app.py`)
-The application is configured via environment variables managed by `python-dotenv`.
+### Notifications (`/notifications`)
+- `GET /notifications`: Fetch notifications for current user
+- `POST /notifications/<notif_id>/read`: Mark notification as read
 
-- **CORS**: Configured via `flask-cors`. Allowed origins are set by `CORS_ORIGINS` env var (default `*`).
-- **JWT**:
-    - Location: Headers only.
-    - Header Name: `Authorization` (configurable via `JWT_HEADER_NAME`).
-    - Header Type: `Bearer` (configurable via `JWT_HEADER_TYPE`).
-- **Database**:
-    - `SQLALCHEMY_DATABASE_URI`: Connection string.
-    - `SQLALCHEMY_TRACK_MODIFICATIONS`: Disabled for performance.
+### Reports (`/reports`)
+- `GET /reports/project/<project_id>`: Get project report data
 
-## 7. Development Utilities
-### Demo Data Seeding (`generate_demo_data.py`)
-A utility script to populate the database with initial data for testing.
-- **Command**: `python generate_demo_data.py` (Resets DB and seeds)
-- **Seeded Data**:
-    - **Permissions**: Complete list of 23 permissions (e.g., `create_task`, `view_reports`).
-    - **Roles**:
-        - `Firm Admin`: All permissions.
-        - `Team Manager`: Team management permissions.
-        - `Team Member`: View only.
-        - `Project Owner`: Full project control.
-        - `Project Contributor`: Edit own tasks, view project.
-        - `Project Visitor`: Read-only access.
-    - **Users**:
-        - `admin@example.com` (Firm Admin)
-        - `alice@example.com` (Manager Team Alpha)
-        - `bob@example.com` (Member Team Alpha)
-        - `carol@example.com` (Manager Team Beta)
-    - **Teams**: Alpha, Beta.
-    - **Projects**: Project X (Alpha), Project Y (Beta).
+### Admin (`/admin`)
+- `POST /admin/users/<user_id>/teams/<team_id>`: Add user to team
+- `DELETE /admin/users/<user_id>/teams/<team_id>`: Remove user from team
+- `POST /admin/users/<user_id>/projects/<project_id>`: Add user to project
+- `DELETE /admin/users/<user_id>/projects/<project_id>`: Remove user from project
+- `PATCH /admin/users/<user_id>/teams/<team_id>/role`: Change team role
+- `PATCH /admin/users/<user_id>/projects/<project_id>/role`: Change project role
+- `GET /admin/teams/<team_id>/members`: List team members
+- `GET /admin/projects/<project_id>/members`: List project members
+- `POST /admin/projects/<project_id>/visitor-team`: Add visitors from a team to a project
+- `POST /admin/projects/<project_id>/remove-visitors`: Remove visitor members from project
 
+## 6. Demo Data Utility
+- `generate_demo_data.py` resets and seeds the database
+- Includes seeded users, teams, roles, permissions, projects, board columns, items, and memberships
+- Sample users:
+  - `admin@example.com` / `adminpass`
+  - `alice@example.com` / `password123`
+  - `bob@example.com` / `password123`
+  - `carol@example.com` / `password123`
+  - `dave@example.com` / `password123`
+
+## 7. Notes and Suggestions
+- Most application logic is in `controllers/`; routes remain thin HTTP adapters.
+- Some team-related flows are handled directly by `routes/teams.py` instead of a dedicated controller.
+- There is an opportunity to add stronger model relationships and more explicit permissions checks.
+- Expanding API docs with example request/response payloads would improve developer usability.
